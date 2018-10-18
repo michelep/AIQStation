@@ -44,30 +44,47 @@ void envRegister() {
 
 void envCallback() {   
   int16_t adc0, adc1, adc2, adc3;
+  float t,h,p;
    
   if(isBME) {
-    dtostrf(bme.readTemperature(),3,2,strTemp);
-    dtostrf((bme.readPressure() / 100.0F), 3, 2, strPressure);
-    dtostrf(bme.readHumidity(),3,2,strHumidity);
+    t = bme.readTemperature();
+    p = bme.readPressure();
+    h = bme.readHumidity();
 #ifdef __DEBUG__
-    Serial.println("[DEBUG] Temp: " + String(strTemp)+ "°C");
-    Serial.println("[DEBUG] Pressure: " + String(strPressure)+ "hPa");
-    Serial.println("[DEBUG] Humidity: " + String(strHumidity)+ "%");
-    Serial.print("[DEBUG] Approx. Altitude = ");
-    Serial.print(bme.readAltitude(SEALEVELPRESSURE_HPA));
-    Serial.println(" m");
+    Serial.print("[DEBUG] Temp:");
+    Serial.println(t);
+    Serial.print("[DEBUG] Pressure:");
+    Serial.println(p);
+    Serial.print("[DEBUG] Humidity: ");
+    Serial.println(h);
+#endif  
+    
+    if(!isnan(t)&&!isnan(p)&&!isnan(h)) {       
+      dtostrf(t,7,2,strTemp);
+      dtostrf((p / 100.0F), 7, 2, strPressure);
+      dtostrf(h,7,2,strHumidity);
+#ifdef __DEBUG__
+      Serial.println("[DEBUG] Temp: " + String(strTemp)+ "°C");
+      Serial.println("[DEBUG] Pressure: " + String(strPressure)+ "hPa");
+      Serial.println("[DEBUG] Humidity: " + String(strHumidity)+ "%");
+      Serial.print("[DEBUG] Approx. Altitude = ");
+      Serial.print(bme.readAltitude(SEALEVELPRESSURE_HPA));
+      Serial.println(" m");
 #endif 
-    // Clear line
-    lcd.clearLine(2);
-    lcd.clearLine(3);
-    lcd.clearLine(4);
+      // Clear line
+      lcd.clearLine(2);
+      lcd.clearLine(3);
+      lcd.clearLine(4);
 
-    sprintf(temp,"Temp: %s C",strTemp);
-    lcd.drawString(0,2,temp);
-    sprintf(temp,"Pres: %s hPa",strPressure);
-    lcd.drawString(0,3,temp);
-    sprintf(temp,"Hum: %s%%",strHumidity);
-    lcd.drawString(0,4,temp);
+      sprintf(temp,"Temp: %s C",strTemp);
+      lcd.drawString(0,2,temp);
+      sprintf(temp,"Pres: %s hPa",strPressure);
+      lcd.drawString(0,3,temp);
+      sprintf(temp,"Hum: %s%%",strHumidity);
+      lcd.drawString(0,4,temp);
+    } else {
+       // Ooops !
+    }
   }
 
   // Read analog value from UV sensor

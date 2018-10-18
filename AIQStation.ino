@@ -158,7 +158,7 @@ Task queueTask(QUEUE_INTERVAL, TASK_FOREVER, &queueCallback);
 NTPSyncEvent_t ntpEvent;
 bool syncEventTriggered = false; // True if a time even has been triggered
 
-char strTemp[7],strHumidity[5],strPressure[7],strPM10[7],strPM25[7],strBattery[5];
+char strTemp[10],strHumidity[10],strPressure[10],strPM10[10],strPM25[10],strBattery[10];
 static int last;
 static long sdsLast=0;
 bool sdsIsWarmup=false;
@@ -329,8 +329,8 @@ void setup() {
     Serial.println("ERROR");
     isBME = false;
   } else {
-#ifdef __DEBUG__
     isBME = true;
+#ifdef __DEBUG__
     Serial.println("OK");
 #endif
   }
@@ -340,8 +340,7 @@ void setup() {
                     Adafruit_BME280::SAMPLING_X1, // pressure
                     Adafruit_BME280::SAMPLING_X1, // humidity
                     Adafruit_BME280::FILTER_OFF   );
-
-
+  
   // Initialize ADC ADS1X15 on I2C bus...
 #ifdef __DEBUG__
   Serial.println("[INIT] Initializing ADS1115 ADC...");
@@ -373,7 +372,7 @@ void setup() {
   } else {
     isClientMode=true;
   }
-/*
+
   // Setup OTA
   ArduinoOTA.onStart([]() { 
     events.send("Update Start", "ota");
@@ -395,14 +394,14 @@ void setup() {
   });
   ArduinoOTA.setHostname(config.hostname);
   ArduinoOTA.begin();
-*/
+
   // Initialize web server on port 80
   initWebServer();
 }
 
 void loop() {
   // Handle OTA
- //  ArduinoOTA.handle();
+  ArduinoOTA.handle();
 
   // Scheduler
   runner.execute();
@@ -418,7 +417,8 @@ void loop() {
     if(isClientMode) {
       // If in client mode, check if wifi connection is up and, if not, try reconnecting...
       lcd.clearLine(1);     
-      if(WiFi.status() != WL_CONNECTED) {
+      if(WiFi.status() != WL_CONNECTED) {    
+        isConnected = false;
         lcd.drawString(0,1,"Reconnecting...");
         connectToWifi();
       } else {
