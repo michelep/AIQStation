@@ -111,11 +111,11 @@ Config config; // Global config object
 
 typedef struct _dataRow {
   long int ts; // TimeStamp
-  char temp[6]; 
-  char hum[6]; 
-  char pres[6];
-  char pm25[6];
-  char pm10[6];
+  char temp[10]; 
+  char hum[10]; 
+  char pres[10];
+  char pm25[10];
+  char pm10[10];
   unsigned int uv;
 } dataRow;
 
@@ -212,9 +212,7 @@ bool connectToWifi() {
       NTP.setInterval(63);
 
       restClient = new RestClient(config.collector_host); 
-      // Now register to Collector host...
-      envRegister();
-      
+       
       return true;  
     } else {
       Serial.println("[ERROR] Failed to connect to WiFi");
@@ -413,7 +411,7 @@ void loop() {
   }
   
   if ((millis () - last) > 5100) {   // Ogni 5 secondi circa... 
-    char temp[20];
+    char temp[30];
     if(isClientMode) {
       // If in client mode, check if wifi connection is up and, if not, try reconnecting...
       lcd.clearLine(1);     
@@ -422,7 +420,11 @@ void loop() {
         lcd.drawString(0,1,"Reconnecting...");
         connectToWifi();
       } else {
-        sprintf(temp,"%s",NTP.getTimeStr().c_str());
+        if(isConnected) {
+          sprintf(temp,"%s",NTP.getTimeStr().c_str());
+        } else {
+          sprintf(temp,"[!] %s",NTP.getTimeStr().c_str());
+        }
         lcd.drawString(0,1,temp);
       }
     } else {

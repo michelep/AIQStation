@@ -4,69 +4,35 @@
 //
 // Written by Michele <o-zone@zerozone.it> Pinassi
 // Released under GPLv3 - No any warranty
-
-char temp[32],query[64];
-unsigned int statusCode;
-     
-bool envSendData(char *url, char *data) {
-  String response="";
-  
-#ifdef __DEBUG__  
-  Serial.print("[DEBUG] REST: ");
-  Serial.print(url);
-  Serial.print(" => ");  
-  Serial.println(query);
-#endif
-
-  statusCode = restClient->post(url, query, &response);
-
-#ifdef __DEBUG__
-  Serial.print("[DEBUG] Status code from server: ");
-  Serial.println(statusCode);
-  Serial.print("[DEBUG] Response body from server: ");
-  Serial.println(response);
-#endif  
-
-  return true;
-}
-
-void envRegister() {
-  if(strlen(config.api_key) > 0) {
-    sprintf(query,"key=%s&hostname=%s&fw=%s-%s",config.api_key,config.hostname,FW_NAME,FW_VERSION);
-
-    envSendData("/rest/register",query);
-  } else {
-    Serial.println("[ERROR] Api key not set");
-  }
-}
-
+    
 #define SEALEVELPRESSURE_HPA (1013.25)
 
 void envCallback() {   
   int16_t adc0, adc1, adc2, adc3;
   float t,h,p;
+  char temp[32];
    
   if(isBME) {
     t = bme.readTemperature();
     p = bme.readPressure();
     h = bme.readHumidity();
-#ifdef __DEBUG__
-    Serial.print("[DEBUG] Temp:");
-    Serial.println(t);
-    Serial.print("[DEBUG] Pressure:");
-    Serial.println(p);
-    Serial.print("[DEBUG] Humidity: ");
-    Serial.println(h);
-#endif  
     
-    if(!isnan(t)&&!isnan(p)&&!isnan(h)) {       
-      dtostrf(t,7,2,strTemp);
-      dtostrf((p / 100.0F), 7, 2, strPressure);
-      dtostrf(h,7,2,strHumidity);
+    if(!isnan(t)&&!isnan(p)&&!isnan(h)) {   
+      // char *   dtostrf (double __val, signed char __width, unsigned char __prec, char *__s)
+          
+      dtostrf(t,6,2,strTemp);
+      dtostrf((p / 100.0F), 6, 2, strPressure);
+      dtostrf(h,6,2,strHumidity);
 #ifdef __DEBUG__
-      Serial.println("[DEBUG] Temp: " + String(strTemp)+ "°C");
-      Serial.println("[DEBUG] Pressure: " + String(strPressure)+ "hPa");
-      Serial.println("[DEBUG] Humidity: " + String(strHumidity)+ "%");
+      Serial.print("[DEBUG] Temp: ");
+      Serial.print(strTemp);
+      Serial.println("°C");
+      Serial.print("[DEBUG] Pressure: ");
+      Serial.print(strPressure);
+      Serial.println("hPa");
+      Serial.print("[DEBUG] Humidity: ");
+      Serial.print(strHumidity);
+      Serial.println("%");
       Serial.print("[DEBUG] Approx. Altitude = ");
       Serial.print(bme.readAltitude(SEALEVELPRESSURE_HPA));
       Serial.println(" m");
@@ -132,12 +98,11 @@ void envCallback() {
   lcd.drawString(0,7,temp);
     
 #ifdef __DEBUG__
-  Serial.print("AIN0: "); Serial.println(adc0);
+  Serial.print("[DEBUG] AIN0: "); Serial.println(adc0);
+  Serial.print("[DEBUG] AIN1: "); Serial.println(adc1);
+  Serial.print("[DEBUG] AIN2: "); Serial.println(adc2);
+  Serial.print("[DEBUG] AIN3: "); Serial.println(adc3);
 #endif
 
-  queueAddRow();
-
-  // Now prepare and send data to collector server...
-  //sprintf(query,"key=%s&t=%s&p=%s&h=%s&uv=%d&pm25=%s&pm10=%s",config.api_key,strTemp,strPressure,strHumidity,UVlevel,strPM25,strPM10);
-  //envSendData("/rest/data/put",query);     
+  queueAddRow();    
 }

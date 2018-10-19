@@ -18,11 +18,11 @@ void queueAddRow() {
     dataRow data;
 
     data.ts = NTP.getTime();
-    strncpy(data.temp,strTemp,6);;
-    strncpy(data.hum,strHumidity,6);
-    strncpy(data.pres,strPressure,6);
-    strncpy(data.pm10,strPM10,6);
-    strncpy(data.pm25,strPM25,6);
+    strcpy(data.temp,strTemp);
+    strcpy(data.hum,strHumidity);
+    strcpy(data.pres,strPressure);
+    strcpy(data.pm10,strPM10);
+    strcpy(data.pm25,strPM25);
     data.uv = UVlevel;
 
     dataQueue.push(&data);
@@ -40,31 +40,39 @@ void queueAddRow() {
 // Queue callback: send data to server
 void queueCallback() { 
   dataRow data;
-  char query[64];
+  char query[128];
   String response="";
   unsigned int statusCode;
   bool r;
+#ifdef __DEBUG__
+  Serial.println("[DEBUG] queueCallback()");
+#endif      
 
   if(isConnected) {
-    if(dataQueue.getCount() > 0) {
+    if((dataQueue.isInitialized()) && (dataQueue.getCount() > 0)) {
       do {
         r = dataQueue.pop(&data);
-        sprintf(query,"key=%s&ts=%l&t=%s&p=%s&h=%s&uv=%d&pm25=%s&pm10=%s",config.api_key,data.ts,data.temp,data.pres,data.hum,data.uv,data.pm25,data.pm10);
+        if(r) {
+          sprintf(query,"key=%s&ts=%d&t=%s&p=%s&h=%s&uv=%d&pm25=%s&pm10=%s",config.api_key,data.ts,data.temp,data.pres,data.hum,data.uv,data.pm25,data.pm10);
 #ifdef __DEBUG__  
-        Serial.print("[DEBUG] REST: ");
-        Serial.println(query);
+          Serial.print("[DEBUG] REST: ");
+          Serial.println(query);
 #endif
-        statusCode = restClient->post("/rest/data/put", query, &response);
+
+          statusCode = restClient->post("/rest/data/put", query, &response);
+
 #ifdef __DEBUG__
-        Serial.print("[DEBUG] Status code from server: ");
-        Serial.println(statusCode);
-        Serial.print("[DEBUG] Response body from server: ");
-        Serial.println(response);
-        if((statusCode >= 200)&&(statusCode < 300)) {
-          // OK
-        } else {
-          // Something goes wrong: mask as not connected and force new registration
-          isConnected = false;
+          Serial.print("[DEBUG] Status code from server: ");
+          Serial.println(statusCode);
+          Serial.print("[DEBUG] Response body from server: ");
+          Serial.println(response);
+          if((statusCode >= 200)&&(statusCode < 300)) {
+            // OK
+          } else {
+            // Something goes wrong: mark as not connected to force new registration next loop
+            isConnected = false;
+            break;
+          }
         }
 #endif
       } while(r);
@@ -73,7 +81,13 @@ void queueCallback() {
     if(strlen(config.api_key) > 0) {
       sprintf(query,"key=%s&hostname=%s&fw=%s-%s",config.api_key,config.hostname,FW_NAME,FW_VERSION);
 
+#ifdef __DEBUG__  
+      Serial.print("[DEBUG] REST: ");
+      Serial.println(query);
+#endif
+
       statusCode = restClient->post("/rest/register", query, &response);
+
 #ifdef __DEBUG__
       Serial.print("[DEBUG] Status code from server: ");
       Serial.println(statusCode);
