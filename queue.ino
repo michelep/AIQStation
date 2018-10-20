@@ -18,11 +18,11 @@ void queueAddRow() {
     dataRow data;
 
     data.ts = NTP.getTime();
-    strcpy(data.temp,strTemp);
-    strcpy(data.hum,strHumidity);
-    strcpy(data.pres,strPressure);
-    strcpy(data.pm10,strPM10);
-    strcpy(data.pm25,strPM25);
+    dtostrf(lastTemp, 6, 2, data.temp);
+    dtostrf(lastHumidity, 6, 2, data.hum);
+    dtostrf(lastPressure, 6, 2, data.pres);
+    dtostrf(lastPM10, 6, 2, data.pm10);
+    dtostrf(lastPM25, 6, 2, data.pm25);
     data.uv = UVlevel;
 
     dataQueue.push(&data);

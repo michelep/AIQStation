@@ -8,26 +8,51 @@
 
 String templateProcessor(const String& var)
 {
+  //
+  // System values
+  //
   if(var == "hostname") {
     return String(config.hostname);
   }
   if(var == "fw_name") {
     return String(FW_NAME);
   }
-
   if(var=="fw_version") {
     return String(FW_VERSION);
   }
-  
   if(var=="uptime") {
     return String(millis());
   }
-
   if(var=="timedate") {
     return String();
   }
-
-  
+  //
+  // Config values
+  //
+  if(var=="wifi_essid") {
+    return String(config.wifi_essid);
+  }
+  if(var=="wifi_password") {
+    return String(config.wifi_password);
+  }
+  if(var=="ntp_server") {
+    return String(config.ntp_server);
+  }
+  if(var=="ntp_timezone") {
+    return String(config.ntp_timezone);
+  }
+  if(var=="collector_host") {
+    return String(config.collector_host);
+  }
+  if(var=="api_key") {
+    return String(config.api_key);
+  }  
+  if(var=="auth_username") {
+    return String(config.www_username);
+  }  
+  if(var=="auth_password") {
+    return String(config.www_password);
+  }  
   return String();
 }
 

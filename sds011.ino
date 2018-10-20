@@ -31,11 +31,13 @@ void sdsCallback() {
       delay(500);
       c = sds.read(&p25, &p10);
       if(!c) {   
-        dtostrf(p10,3,1,strPM10);
-        dtostrf(p25,3,1,strPM25);
+        lastPM25 = p25;
+        lastPM10 = p10;
 #ifdef __DEBUG__
-        Serial.print("[DEBUG] P2.5: " + String(p25));
-        Serial.println("[DEBUG] P10:  " + String(p10));
+        Serial.print("[DEBUG] P2.5: ");
+        Serial.println(p25);
+        Serial.print("[DEBUG] P10: ");
+        Serial.println(p10);
 #endif 
         // Save last valid acquirement
         sdsLast = millis();

@@ -17,7 +17,7 @@
 	    <center><div id="result">&nbsp;</div></center>
 	    <h1 class="mt-5">Air Quality Station</h1>
 	    <h5>%hostname%</h5>
-	    <div class="card-deck"><!-- CARD DECK -->
+	    <div class="card-deck"><!-- CARD DECK A -->
 		<div class="card bg-light mb-4">
 		    <div class="card-header">
 			<h2 class="card-header-title">Temperature</h2>
@@ -50,7 +50,24 @@
 			<h2 id="uv_field"><img src="/loader.gif" /></h2>
 		    </div>
 		</div>
-	    </div><!-- /CARD DECK -->
+	    </div><!-- /CART DECK A --><div class="card-deck"><!-- CARD DECK B -->
+		<div class="card bg-light mb-4">
+		    <div class="card-header">
+			<h2 class="card-header-title">PM 2.5</h2>
+		    </div>
+		    <div class="card-body text-center">
+			<h2 id="pm25_field"><img src="/loader.gif" /></h2>
+		    </div>
+		</div>
+		<div class="card bg-light mb-4">
+		    <div class="card-header">
+			<h2 class="card-header-title">PM 10</h2>
+		    </div>
+		    <div class="card-body text-center">
+			<h2 id="pm10_field"><img src="/loader.gif" /></h2>
+		    </div>
+		</div>
+	    </div><!-- /CARD DECK B -->
 	    <div class="row"><!-- GRAPH -->
 		<canvas id="history_chart" height="300px"></canvas>
 	    </div><!-- /GRAPH -->
@@ -90,7 +107,7 @@
 					<input type="text" class="form-control" id="form_ntp_server" name="ntp_server" value="%ntp_server%" />
 					<p class="text-muted">NTP server</p>
 				    </div>
-				    <div class="form-row">
+				    <div class="col-md-6">
 					<label for="formNTPTimeZone">NTP time zone</label>
 					<input type="text" class="form-control" id="form_ntp_timezone" name="ntp_timezone" value="%ntp_timezone%" />
 					<p class="text-muted">NTP time zone</p>
@@ -121,10 +138,6 @@
 				    </div>
 				</div>
 				<input type="submit" class="btn btn-info" value="Save" /> or <a href="/config.json" class="btn btn-xs btn-info">Backup config</a>
-			    </form>
-			    <form class="form" method="POST" action="/post">
-				<input type="hidden" name="action" value="reset">
-				<input type="submit" class="btn btn-warning" value="Reset" />
 			    </form>
 			</div>
 		    </div>

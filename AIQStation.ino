@@ -153,21 +153,28 @@ Task envTask(ENV_INTERVAL, TASK_FOREVER, &envCallback);
 void queueCallback();
 Task queueTask(QUEUE_INTERVAL, TASK_FOREVER, &queueCallback);
 
-
 // NTP
 NTPSyncEvent_t ntpEvent;
 bool syncEventTriggered = false; // True if a time even has been triggered
 
-char strTemp[10],strHumidity[10],strPressure[10],strPM10[10],strPM25[10],strBattery[10];
+// Environmental values
+float lastTemp,lastHumidity,lastPressure,lastPM10,lastPM25;
+int16_t adc0, adc1, adc2, adc3;
+unsigned int UVlevel;
+//
 static int last;
 static long sdsLast=0;
 bool sdsIsWarmup=false;
-unsigned int UVlevel;
+
 bool isBME; // True if BME280 is present and active
+bool isUV;  // True if UV sensor is present and active
 bool isClientMode; // True if connected to an AP, false if AP mode
 bool isConnected; // True if connected to collector server
+
 IPAddress myIP;
 
+#define MAX_DATAWD 720          // Once an hour (720*5 = 3600)
+unsigned int dataWd=MAX_DATAWD; // Data watchdog, decrease 1 every 5 seconds. On 0, force sending data; On sending data, restart
 // ==============================================
 bool connectToWifi() {
   uint8_t timeout=0;
@@ -257,6 +264,20 @@ void runWifiAP() {
   }
 }
 
+enum i2c_status   {I2C_WAITING,     // stopped states
+                   I2C_TIMEOUT,     //  |
+                   I2C_ADDR_NAK,    //  |
+                   I2C_DATA_NAK,    //  |
+                   I2C_ARB_LOST,    //  |
+                   I2C_BUF_OVF,     //  |
+                   I2C_NOT_ACQ,     //  |
+                   I2C_DMA_ERR,     //  V
+                   I2C_SENDING,     // active states
+                   I2C_SEND_ADDR,   //  |
+                   I2C_RECEIVING,   //  |
+                   I2C_SLAVE_TX,    //  |
+                   I2C_SLAVE_RX};
+
 // *******************************
 // Setup
 //
@@ -316,7 +337,15 @@ void setup() {
   Wire.begin(I2C_SDA, I2C_SCL);
   Wire.setClock(100000);
 #ifdef __DEBUG__
-  Serial.println(Wire.status());
+  switch(Wire.status()) {
+    case I2C_WAITING:  Serial.print("I2C waiting, no errors\n"); break;
+    case I2C_ADDR_NAK: Serial.print("Slave addr not acknowledged\n"); break;
+    case I2C_DATA_NAK: Serial.print("Slave data not acknowledged\n"); break;
+    case I2C_ARB_LOST: Serial.print("Bus Error: Arbitration Lost\n"); break;
+    case I2C_TIMEOUT:  Serial.print("I2C timeout\n"); break;
+    case I2C_BUF_OVF:  Serial.print("I2C buffer overflow\n"); break;
+    default:           Serial.print("I2C busy\n"); break;
+  }
 #endif
   // Initialize BME280 
 #ifdef __DEBUG__
@@ -397,6 +426,53 @@ void setup() {
   initWebServer();
 }
 
+// *******************************
+// displayUpdate()
+//
+// I2C LCD display update with data
+// *******************************
+void displayUpdate() {
+  char temp[32],val[16];
+  
+  lcd.clearLine(1);
+  if(isClientMode) {
+    sprintf(temp,"%s",NTP.getTimeStr().c_str());
+    lcd.drawString(0,1,temp);
+  } else {
+    sprintf(temp,"IP %s",myIP.toString().c_str());
+    lcd.drawString(0,1,temp);
+  }
+  
+  lcd.clearLine(2);
+  dtostrf(lastTemp,6,2,val);
+  sprintf(temp,"Temp: %s C",val);
+  lcd.drawString(0,2,temp);
+
+  lcd.clearLine(3);
+  dtostrf(lastPressure,6,2,val);
+  sprintf(temp,"Pres: %s hPa",val);
+  lcd.drawString(0,3,temp);        
+
+  lcd.clearLine(4);
+  dtostrf(lastHumidity,6,2,val);
+  sprintf(temp,"Hum: %s%%",val);
+  lcd.drawString(0,4,temp);
+
+  lcd.clearLine(5);
+  sprintf(temp,"UV: %d mV",UVlevel);
+  lcd.drawString(0,5,temp);
+
+  lcd.clearLine(6);
+  dtostrf(lastPM10, 6, 2, val);
+  sprintf(temp,"PM10: %s",val);
+  lcd.drawString(0,6,temp);
+  
+  lcd.clearLine(7);
+  dtostrf(lastPM25, 6, 2, val);
+  sprintf(temp,"PM25: %s",val);  
+  lcd.drawString(0,7,temp);
+}
+
 void loop() {
   // Handle OTA
   ArduinoOTA.handle();
@@ -417,25 +493,19 @@ void loop() {
       lcd.clearLine(1);     
       if(WiFi.status() != WL_CONNECTED) {    
         isConnected = false;
-        lcd.drawString(0,1,"Reconnecting...");
         connectToWifi();
-      } else {
-        if(isConnected) {
-          sprintf(temp,"%s",NTP.getTimeStr().c_str());
-        } else {
-          sprintf(temp,"[!] %s",NTP.getTimeStr().c_str());
-        }
-        lcd.drawString(0,1,temp);
-      }
+      } 
     } else {
-      // AP mode
-      // Clear line
-      lcd.clearLine(1);
-      sprintf(temp,"IP %s",myIP.toString().c_str());
-      lcd.drawString(0,1,temp);
+      // AP mode 
 #ifdef __DEBUG__      
       Serial.printf("[DEBUG] AP mode - Clients: %d\n", WiFi.softAPgetStationNum());
 #endif      
+    }
+    displayUpdate();
+  
+    dataWd--;
+    if(dataWd < 1) {
+      queueAddRow(); 
     }
     last = millis ();
   }
