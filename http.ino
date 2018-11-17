@@ -21,7 +21,7 @@ String templateProcessor(const String& var)
     return String(FW_VERSION);
   }
   if(var=="uptime") {
-    return String(millis());
+    return String(millis()/1000);
   }
   if(var=="timedate") {
     return String();
@@ -69,6 +69,51 @@ void initWebServer() {
     // server.setAuthentication(config.www_username, config.www_password);
   }
 
+  server.on("/ajax", HTTP_POST, [] (AsyncWebServerRequest *request) {
+    String action,value,response="";
+/* #ifdef __DEBUG__
+    int i, params = request->params();
+    for(i=0;i<params;i++){
+      AsyncWebParameter* p = request->getParam(i);
+      Serial.printf("_POST[%s]: %s\n", p->name().c_str(), p->value().c_str());
+    }
+#endif */
+    if (request->hasParam("action", true)) {
+      action = request->getParam("action", true)->value();
+      Serial.print("ACTION: ");
+      if(action.equals("get")) {
+        value = request->getParam("value", true)->value();
+        Serial.println(value);
+        if(value.equals("temp")) {
+          response = String(lastTemp);
+        }
+        if(value.equals("humidity")) {
+          response = String(lastHumidity);
+        }
+        if(value.equals("pressure")) {
+          response = String(lastPressure);
+        }
+        if(value.equals("pm25")) {
+          response = String(lastPM25);
+        }
+        if(value.equals("pm10")) {
+          response = String(lastPM10);
+        }
+        if(value.equals("aq")) {
+          response = String(lastAQ);
+        }
+ #ifdef __DEBUG__
+        Serial.print("[DEBUG] POST action:");
+        Serial.print(action);
+        Serial.print(":");
+        Serial.print(value);
+        Serial.print("=");
+        Serial.println(response);
+ #endif
+      }
+    }
+    request->send(200, "text/plain", response);
+  });
   // Add events handler
   server.addHandler(&events);
 

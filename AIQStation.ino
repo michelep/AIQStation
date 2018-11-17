@@ -4,7 +4,7 @@
 //
 // Bosch BME820 Temp-Hum-Pressure
 // SDS011 PM2.5/PM10 Laser sensor
-// UV Ray detector on A0 - range 0-1V: 
+// MQ135 CO2 sensor on A0
 //
 // Written by Michele <o-zone@zerozone.it> Pinassi
 // Released under GPLv3 - No any warranty
@@ -13,7 +13,6 @@
 // 
 // Program using: NodeMCU 1.0 (ESP12E) Module
 
-// #define HTTP_DEBUG // Need to debug HTTP transactions ?
 // Enable diagnostic messages to serial
 #define __DEBUG__ 1
 
@@ -29,7 +28,7 @@
 #include <ArduinoJson.h>
 
 // REST Client
-// https://github.com/DaKaZ/esp8266-restclient
+// https://github.com/michelep/esp8266-restclient
 #include "RestClient.h"  
 
 // NTP ClientLib 
@@ -53,19 +52,24 @@
 
 Adafruit_BME280 bme; // I2C
 
+// MQ135 Air Quality Sensor
+#include <MQ135.h>
+
+MQ135 mq135 = MQ135(A0);
+
 // ADS1x15 ADC module (4 ADC input connected via I2C bus
 // https://github.com/adafruit/Adafruit_ADS1X15
-#include <Adafruit_ADS1015.h>
+// #include <Adafruit_ADS1015.h>
 
-Adafruit_ADS1015 ads(0x48);
+// Adafruit_ADS1015 ads(0x48);
 
 // Dust detector
-// https://github.com/ricki-z/SDS011
+//
 #include <SDS011.h>
 
 // SDS010 SoftSerial port
-#define SDS_TX 0 // D3
-#define SDS_RX 2 // D4
+#define SDS_RX 0 // D3
+#define SDS_TX 2 // D4
 
 SDS011 sds;
 
@@ -116,7 +120,7 @@ typedef struct _dataRow {
   char pres[10];
   char pm25[10];
   char pm10[10];
-  unsigned int uv;
+  char aq[10];
 } dataRow;
 
 Queue dataQueue(sizeof(dataRow), QUEUE_MAX_SIZE, FIFO, true); // Instantiate queue
@@ -153,29 +157,32 @@ Task envTask(ENV_INTERVAL, TASK_FOREVER, &envCallback);
 void queueCallback();
 Task queueTask(QUEUE_INTERVAL, TASK_FOREVER, &queueCallback);
 
+#define MQ135_WARMUP 60000*15 // Quarter of hour
+void mq135Callback();
+Task mq135Task(MQ135_WARMUP, TASK_ONCE, &mq135Callback);
+
 // NTP
 NTPSyncEvent_t ntpEvent;
 bool syncEventTriggered = false; // True if a time even has been triggered
 
 // Environmental values
-float lastTemp,lastHumidity,lastPressure,lastPM10,lastPM25;
-int16_t adc0, adc1, adc2, adc3;
-unsigned int UVlevel;
+float lastTemp=0,lastHumidity=0,lastPressure=0,lastPM10=0,lastPM25=0,lastAQ=0;
 //
 static int last;
-static long sdsLast=0;
+static long sdsCount=0;
 bool sdsIsWarmup=false;
 
 bool isBME; // True if BME280 is present and active
-bool isUV;  // True if UV sensor is present and active
+bool isMQ135; // True if MQ135 Air Quality sensor is active and ready (after some hours of power up...)
 bool isClientMode; // True if connected to an AP, false if AP mode
 bool isConnected; // True if connected to collector server
 
 IPAddress myIP;
 
-#define MAX_DATAWD 720          // Once an hour (720*5 = 3600)
-unsigned int dataWd=MAX_DATAWD; // Data watchdog, decrease 1 every 5 seconds. On 0, force sending data; On sending data, restart
-// ==============================================
+// ************************************
+// connectToWifi()
+//
+// ************************************
 bool connectToWifi() {
   uint8_t timeout=0;
 
@@ -368,18 +375,15 @@ void setup() {
                     Adafruit_BME280::SAMPLING_X1, // humidity
                     Adafruit_BME280::FILTER_OFF   );
   
-  // Initialize ADC ADS1X15 on I2C bus...
-#ifdef __DEBUG__
-  Serial.println("[INIT] Initializing ADS1115 ADC...");
-#endif    
-  ads.begin();
-  ads.setGain(GAIN_TWOTHIRDS);  // 2/3x gain +/- 6.144V  1 bit = 3mV (default)
-
   // Initialize SHS011 dust sensor
 #ifdef __DEBUG__
-  Serial.println("[INIT] Initializing SHS011 dust sensor...");
-#endif    
-  sds.begin(SDS_TX, SDS_RX); //RX, TX
+  Serial.print("[INIT] Initializing SHS011 dust sensor...");
+#endif  
+  sds.begin(SDS_RX,SDS_TX);
+#ifdef __DEBUG__
+  Serial.println("OK");
+#endif  
+  
   // Add sds callback for periodic measurement, every 60xN seconds...
   runner.addTask(sdsTask);
   sdsTask.enable();
@@ -391,6 +395,10 @@ void setup() {
   // Add environmental sensor data fetch task
   runner.addTask(envTask);
   envTask.enable();
+
+  // Add MQ135 timeout to enable after warmup
+  runner.addTask(mq135Task);
+  mq135Task.enable();
   
   // Connect to WiFi network: if failed, start AP mode...
   if(!connectToWifi()) {
@@ -459,20 +467,33 @@ void displayUpdate() {
   lcd.drawString(0,4,temp);
 
   lcd.clearLine(5);
-  sprintf(temp,"UV: %d mV",UVlevel);
+  dtostrf(lastAQ,6,2,val);
+  sprintf(temp,"VOCs: %s PPM",val);
   lcd.drawString(0,5,temp);
 
   lcd.clearLine(6);
-  dtostrf(lastPM10, 6, 2, val);
-  sprintf(temp,"PM10: %s",val);
-  lcd.drawString(0,6,temp);
+  if(lastPM10 > 0) {
+    dtostrf(lastPM10, 6, 2, val);
+    sprintf(temp,"PM10: %s",val);
+  } else {
+    sprintf(temp,"PM10...");
+  }
+  lcd.drawString(0,6,temp); 
   
   lcd.clearLine(7);
-  dtostrf(lastPM25, 6, 2, val);
-  sprintf(temp,"PM25: %s",val);  
+  if(lastPM25 > 0) {
+    dtostrf(lastPM25, 6, 2, val);
+    sprintf(temp,"PM25: %s",val);  
+  } else {
+    sprintf(temp,"PM25...");
+  }
   lcd.drawString(0,7,temp);
 }
 
+// ************************************
+// Loop()
+//
+// ************************************
 void loop() {
   // Handle OTA
   ArduinoOTA.handle();
@@ -502,12 +523,7 @@ void loop() {
 #endif      
     }
     displayUpdate();
-  
-    dataWd--;
-    if(dataWd < 1) {
-      queueAddRow(); 
-    }
-    last = millis ();
+
+    last = millis();
   }
 }
-

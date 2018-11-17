@@ -18,12 +18,12 @@ void queueAddRow() {
     dataRow data;
 
     data.ts = NTP.getTime();
-    dtostrf(lastTemp, 6, 2, data.temp);
-    dtostrf(lastHumidity, 6, 2, data.hum);
-    dtostrf(lastPressure, 6, 2, data.pres);
-    dtostrf(lastPM10, 6, 2, data.pm10);
-    dtostrf(lastPM25, 6, 2, data.pm25);
-    data.uv = UVlevel;
+    dtostrf(lastTemp, 1, 2, data.temp);
+    dtostrf(lastHumidity, 1, 2, data.hum);
+    dtostrf(lastPressure, 1, 2, data.pres);
+    dtostrf(lastPM10, 1, 2, data.pm10);
+    dtostrf(lastPM25, 1, 2, data.pm25);
+    dtostrf(lastAQ, 1, 2, data.aq);
 
     dataQueue.push(&data);
 #ifdef __DEBUG__
@@ -53,7 +53,7 @@ void queueCallback() {
       do {
         r = dataQueue.pop(&data);
         if(r) {
-          sprintf(query,"key=%s&ts=%d&t=%s&p=%s&h=%s&uv=%d&pm25=%s&pm10=%s",config.api_key,data.ts,data.temp,data.pres,data.hum,data.uv,data.pm25,data.pm10);
+          sprintf(query,"key=%s&ts=%d&t=%s&p=%s&h=%s&aq=%s&pm25=%s&pm10=%s",config.api_key,data.ts,data.temp,data.pres,data.hum,data.aq,data.pm25,data.pm10);
 #ifdef __DEBUG__  
           Serial.print("[DEBUG] REST: ");
           Serial.println(query);

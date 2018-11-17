@@ -39,15 +39,15 @@
 			<h2 class="card-header-title">Pressure</h2>
 		    </div>
 		    <div class="card-body text-center">
-			<h2 id="pres_field"><img src="/loader.gif" /></h2>
+			<h2 id="pressure_field"><img src="/loader.gif" /></h2>
 		    </div>
 		</div>
 		<div class="card bg-light mb-4">
 		    <div class="card-header">
-			<h2 class="card-header-title">UV Level</h2>
+			<h2 class="card-header-title">VOCs PPM</h2>
 		    </div>
 		    <div class="card-body text-center">
-			<h2 id="uv_field"><img src="/loader.gif" /></h2>
+			<h2 id="aq_field"><img src="/loader.gif" /></h2>
 		    </div>
 		</div>
 	    </div><!-- /CART DECK A --><div class="card-deck"><!-- CARD DECK B -->
@@ -147,6 +147,32 @@
 	<div class="container">
 	    <p class="text-muted">Firmware %fw_name% %fw_version% - Uptime %uptime% secs - %timedate%</p>
 	</div>
+	<script>
+function ajaxCall(act, field, result) {
+  $.ajax({
+    url: 'ajax',
+    type: 'post',
+    data: { action: act, value: field },
+    success: function(data) {
+	$(result).html(data);
+    }
+  });
+}
+
+function executeQuery(field, result) {
+  ajaxCall('get',field,result);
+  setTimeout(executeQuery, 5000, field, result);
+}
+
+$(document).ready(function(){
+    executeQuery("temp","#temp_field");
+    executeQuery("humidity","#hum_field");
+    executeQuery("pressure","#pressure_field");
+    executeQuery("aq","#aq_field");
+    executeQuery("pm25","#pm25_field");
+    executeQuery("pm10","#pm10_field");
+});
+	</script>
     </body>
     <footer class="footer">
         <div class="container">
