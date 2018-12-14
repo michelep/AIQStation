@@ -5,7 +5,7 @@ This is the firmware for a DYI air quality monitoring station, based on ESP8266 
 
 ### BOM 
 
-1. Lolin NodeMCU 1.0
+1. Lolin NodeMCU 1.0 ESP8266 module
 2. Bosch BME280 module
 3. MQ135 module
 4. SHS011 Dust sensor
@@ -18,7 +18,7 @@ Work in progress
 
 ### How to join the network
 
-Work in progress
+Join us on Facebook: https://www.facebook.com/groups/cheariatira.siena
 
 ### Contacts
 
