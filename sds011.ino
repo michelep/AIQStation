@@ -14,9 +14,9 @@ void sdsCallback() {
   uint8_t timeout=0;
   int error;
   float pm10, pm25;
-#ifdef __DEBUG__
-  Serial.println("[DEBUG] sdsCallback()");
-#endif  
+  
+  DEBUG_PRINT("[DEBUG] sdsCallback()");
+  
   if(!sdsIsWarmup) {
     // Wake up, SDS !
     sds.wakeup();
@@ -24,9 +24,8 @@ void sdsCallback() {
     sdsTask.setInterval(30000); /* 30 secondi to warm up */
     // Set true
     sdsIsWarmup = true;
-#ifdef __DEBUG__
-  Serial.println("[DEBUG] SDS011 is warming... back in 10 seconds...");
-#endif  
+
+    DEBUG_PRINT("[SDS011] Warming...");
   } else {
     while((error)&&(timeout < 10)) {
       delay(500);
@@ -35,24 +34,15 @@ void sdsCallback() {
       if(!error) {   
         lastPM25 = pm25;
         lastPM10 = pm10;
-#ifdef __DEBUG__
-        Serial.print("[DEBUG] P2.5: ");
-        Serial.println(String(pm25));
-        Serial.print("[DEBUG] P10: ");
-        Serial.println(String(pm10));
-#endif 
+        DEBUG_PRINT("[SDS011] PM2.5:"+String(pm25)+" PM10:"+String(pm10));
         sdsCount++;
       } else {
-#ifdef __DEBUG__
-        Serial.println("[ERROR] SDS010 error");
-#endif
+        DEBUG_PRINT("[SDS011] SDS010 error");
       }
       timeout++;
     }
     // Go back to sleep...
-#ifdef __DEBUG__
-    Serial.println("[DEBUG] SDS011 sleeping");
-#endif  
+    DEBUG_PRINT("[SDS011] Sleeping");
     sds.sleep();
     // Restore original interval
     sdsTask.setInterval(SDS_INTERVAL);

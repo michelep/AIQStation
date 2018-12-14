@@ -14,18 +14,18 @@
 // ************************************
 bool loadConfigFile() {
   DynamicJsonBuffer jsonBuffer;
-#ifdef __DEBUG__
-  Serial.println("[DEBUG] loadConfigFile()");
-#endif
+  
+  DEBUG_PRINT("[DEBUG] loadConfigFile()");
+
   configFile = SPIFFS.open(CONFIG_FILE, "r");
   if (!configFile) {
-    Serial.println("[ERROR] Config file not available");
+    DEBUG_PRINT("[CONFIG] Config file not available");
     return false;
   } else {
     // Get the root object in the document
     JsonObject &root = jsonBuffer.parseObject(configFile);
     if (!root.success()) {
-      Serial.println("[ERROR] Failed to read config file");
+      DEBUG_PRINT("[CONFIG] Failed to read config file");
       return false;
     } else {
       strlcpy(config.wifi_essid, root["wifi_essid"], sizeof(config.wifi_essid));
@@ -39,7 +39,10 @@ bool loadConfigFile() {
       strlcpy(config.ntp_server, root["ntp_server"] | "time.ien.it", sizeof(config.ntp_server));
       config.ntp_timezone = root["ntp_timezone"] | 1;
 
-      Serial.println("[INIT] Configuration loaded");
+      strlcpy(config.syslog_server, root["syslog_server"] | "", sizeof(config.syslog_server));
+      config.syslog_port = root["syslog_port"] | 514;
+      
+      DEBUG_PRINT("[INIT] Configuration loaded");
     }
   }
   configFile.close();
@@ -48,9 +51,7 @@ bool loadConfigFile() {
 
 bool saveConfigFile() {
   DynamicJsonBuffer jsonBuffer;
-#ifdef __DEBUG__
-  Serial.println("[DEBUG] saveConfigFile()");
-#endif
+  DEBUG_PRINT("[DEBUG] saveConfigFile()");
   // Parse the root object
   JsonObject &root = jsonBuffer.createObject();
 
@@ -63,17 +64,19 @@ bool saveConfigFile() {
   root["www_password"] = config.www_password;
   root["ntp_server"] = config.ntp_server;
   root["ntp_timezone"] = config.ntp_timezone;
-
+  root["syslog_server"] = config.syslog_server;
+  root["syslog_port"] = config.syslog_port;
+  
   configFile = SPIFFS.open(CONFIG_FILE, "w");
   if(!configFile) {
-    Serial.println("[ERROR] Failed to create config file !");
+    DEBUG_PRINT("[CONFIG] Failed to create config file !");
     return false;
   }
   if (root.printTo(configFile) == 0) {
-    Serial.println("[ERROR] Failed to save config file !");
+    DEBUG_PRINT("[CONFIG] Failed to save config file !");
   } else {
 #ifdef __DEBUG__    
-    Serial.println("[SUCCESS] Configuration saved !");
+    DEBUG_PRINT("[CONFIG] Configuration saved !");
 #endif
   }
   configFile.close();

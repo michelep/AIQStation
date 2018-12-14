@@ -8,74 +8,84 @@
 #define SEALEVELPRESSURE_HPA (1013.25)
 
 void mq135Callback() {
-#ifdef __DEBUG__
-  Serial.println("[DEBUG] MQ135 ready...");
-#endif
+  DEBUG_PRINT("[DEBUG] MQ135 ready...");
   isMQ135 = true;
 }
 
-void envCallback() {   
-  float t,p,h,volt,aq,rzero;
+void envFetchData() {
+  float t,p,h,volt,aq,rzero,c;
   char temp[32];
+
+// Print I2C bus status...
+// i2c_status();
    
   if(isBME) {
+    bme.takeForcedMeasurement();
 ////// TEMPERATURE
-    t = bme.readTemperature();
+    c=10;
+    do {
+      t = bme.readTemperature();
+      c--;
+      delay(500);
+    } while(isnan(t)&&(c > 0));
+   
     if(!isnan(t)) {
       lastTemp = t;
+      DEBUG_PRINT("[BME280] Temp: "+String(t)+"°C");
+    } else {
+      DEBUG_PRINT("[BME280] Failed read temp");
     }
-#ifdef __DEBUG__
-    Serial.print("[DEBUG] Temp: ");
-    Serial.print(t);
-    Serial.println("°C");
-#endif
 /////// PRESSURE
-    p = (bme.readPressure() / 100.0F);
+    c=10;
+    do {
+      p = (bme.readPressure() / 100.0F);
+      c--;
+      delay(500);      
+    } while(isnan(p)&&(c > 0));
+    
     if(!isnan(p)) {
       lastPressure = p;
+      DEBUG_PRINT("[BME280] Pressure: "+String(p)+"hPa");
+    } else {
+      DEBUG_PRINT("[BME280] Failed read pressure");
     }
 
-#ifdef __DEBUG__
-    Serial.print("[DEBUG] Pressure: ");
-    Serial.print(p);
-    Serial.println("hPa");
-#endif
-////// HUMIDITY  
-    h = bme.readHumidity();
+////// HUMIDITY 
+    c=10;
+    do {
+      h = bme.readHumidity();
+      c--;
+      delay(500);      
+    } while(isnan(h)&&(c > 0));
+    
     if(!isnan(h)) {
       lastHumidity = h;
+      DEBUG_PRINT("[BME280] Humidity: "+String(h)+"%");
+    } else {
+      DEBUG_PRINT("[BME280] Failed read humidity");
     }
 
-#ifdef __DEBUG__
-    Serial.print("[DEBUG] Humidity: ");
-    Serial.print(h);
-    Serial.println("%");
-#endif
 /////// APPROX ALTITUDE
     
-#ifdef __DEBUG__
-    Serial.print("[DEBUG] Approx. Altitude = ");
-    Serial.print(bme.readAltitude(SEALEVELPRESSURE_HPA));
-    Serial.println(" m");
-#endif 
+    DEBUG_PRINT("[BME280] Approx. Altitude = "+String(bme.readAltitude(SEALEVELPRESSURE_HPA))+" m");
+  } else {
+      // Try initialize BME280...
+      isBME = BME280Init();
   }
   
   if((isMQ135)&&(!isnan(t))&&(!isnan(h))) {
-#ifdef __DEBUG__
-    Serial.print("[DEBUG] MQ135 RZero: ");
-#endif
     rzero = mq135.getCorrectedRZero(t,h);
-#ifdef __DEBUG__
-    Serial.println(rzero);
-    Serial.print("[DEBUG] MQ135 PPM: ");
-#endif    
+    DEBUG_PRINT("[MQ135] MQ135 RZero: "+String(rzero));
     aq = mq135.getCorrectedPPM(t,h);
-#ifdef __DEBUG__
-    Serial.println(aq);
-#endif
+    DEBUG_PRINT("[MQ135] MQ135 PPM: "+String(aq));
     lastAQ = aq;
   }
+}
 
-  // If something change, enqueue data for collector server
+void envCallback() {   
+  DEBUG_PRINT("[DEBUG] Environment callback...");
+
+  envFetchData();
+  
   queueAddRow();    
 }

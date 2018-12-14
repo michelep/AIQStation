@@ -68,9 +68,6 @@
 		    </div>
 		</div>
 	    </div><!-- /CARD DECK B -->
-	    <div class="row"><!-- GRAPH -->
-		<canvas id="history_chart" height="300px"></canvas>
-	    </div><!-- /GRAPH -->
 	    <div class="accordion" id="configSection"><!-- CONFIGURATION -->
 		<div class="card"><!-- CONFIG -->
 		    <div class="card-header" id="headingManual">
@@ -137,12 +134,31 @@
 		    			<p class="text-muted">Set password for web auth</p>
 				    </div>
 				</div>
+				<div class="form-row">
+				    <div class="col-md-6">
+    		    			<label for="formSyslogServer">Syslog server</label>
+		    			<input type="text" class="form-control" id="form_syslog_server" name="syslog_server" value="%syslog_server%" />
+		    			<p class="text-muted">Set syslog server for debugging (blank to disable)</p>
+				    </div>
+				    <div class="col-md-6">
+		    			<label for="formAuthPass">Syslog server port</label>
+		    			<input type="text" class="form-control" id="form_syslog_port" name="syslog_port" value="%syslog_port%" />
+		    			<p class="text-muted">Set syslog server port (default: 514)</p>
+				    </div>
+				</div>
 				<input type="submit" class="btn btn-info" value="Save" /> or <a href="/config.json" class="btn btn-xs btn-info">Backup config</a>
 			    </form>
+			    <form class="form" method="POST" action="/restart">
+				<input type="hidden" name="action" value="restart">
+				<input type="submit" class="btn btn-warning" value="Restart" />
+			    </form>    
 			</div>
 		    </div>
 		</div><!-- /CONFIG -->
 	    </div>
+	</div>
+	<div class="container">
+	    Data frame sent: %datacounter% Errors: %dataerrorcounter%</p>
 	</div>
 	<div class="container">
 	    <p class="text-muted">Firmware %fw_name% %fw_version% - Uptime %uptime% secs - %timedate%</p>

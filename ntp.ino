@@ -13,19 +13,14 @@
 // manage NTP sync events and warn in case of error
 // ************************************
 void processSyncEvent(NTPSyncEvent_t ntpEvent) {
-#ifdef __DEBUG__
-  Serial.println("[DEBUG] processSyncEvent() ");
-#endif
+  DEBUG_PRINT("[DEBUG] processSyncEvent() ");
   if (ntpEvent) {
-    Serial.print ("[ERROR] Time Sync error: ");
+    DEBUG_PRINT("[NTP] Time Sync error: ");
     if (ntpEvent == noResponse)
-      Serial.println ("[ERROR] NTP server not reachable");
+      DEBUG_PRINT("[NTP] NTP server not reachable");
     else if (ntpEvent == invalidAddress)
-      Serial.println ("[ERROR] Invalid NTP server address");
+      DEBUG_PRINT("[NTP] Invalid NTP server address");
   } else {
-#ifdef __DEBUG__    
-    Serial.print("[DEBUG] Got NTP time: ");
-    Serial.println(NTP.getTimeDateString (NTP.getLastNTPSync ()));
-#endif
+    DEBUG_PRINT("[NTP] Got NTP time: "+String(NTP.getTimeDateString(NTP.getLastNTPSync ())));
   }
 }

@@ -24,7 +24,13 @@ String templateProcessor(const String& var)
     return String(millis()/1000);
   }
   if(var=="timedate") {
-    return String();
+    return NTP.getTimeDateString();
+  }
+  if(var=="datacounter") {
+    return String(dataCounter);
+  }
+  if(var=="dataerrorcounter") {
+    return String(dataErrorCounter);
   }
   //
   // Config values
@@ -53,6 +59,12 @@ String templateProcessor(const String& var)
   if(var=="auth_password") {
     return String(config.www_password);
   }  
+  if(var=="syslog_server") {
+    return String(config.syslog_server);
+  }  
+  if(var=="syslog_port") {
+    return String(config.syslog_port);
+  }  
   return String();
 }
 
@@ -69,21 +81,48 @@ void initWebServer() {
     // server.setAuthentication(config.www_username, config.www_password);
   }
 
+  server.on("/restart", HTTP_POST, [](AsyncWebServerRequest *request){
+    request->redirect("/?restart=ok");
+    ESP.restart();
+  });
+
+  server.on("/post", HTTP_POST, [](AsyncWebServerRequest *request){
+    String message;
+    if(request->hasParam("wifi_essid", true)) {
+        strcpy(config.wifi_essid,request->getParam("wifi_essid", true)->value().c_str());
+    }
+    if(request->hasParam("wifi_password", true)) {
+        strcpy(config.wifi_password,request->getParam("wifi_password", true)->value().c_str());
+    }
+    if(request->hasParam("ntp_server", true)) {
+        strcpy(config.ntp_server, request->getParam("ntp_server", true)->value().c_str());
+    }
+    if(request->hasParam("ntp_timezone", true)) {
+        config.ntp_timezone = atoi(request->getParam("ntp_timezone", true)->value().c_str());
+    }
+    if(request->hasParam("syslog_server", true)) {
+        strcpy(config.syslog_server,request->getParam("syslog_server", true)->value().c_str());
+    }
+    if(request->hasParam("syslog_port", true)) {
+        config.syslog_port = atoi(request->getParam("syslog_port", true)->value().c_str());
+    }
+    if(request->hasParam("collector_host", true)) {
+        strcpy(config.collector_host,request->getParam("collector_host", true)->value().c_str());
+    }
+    if(request->hasParam("api_key", true)) {
+        strcpy(config.api_key, request->getParam("api_key", true)->value().c_str());
+    }    
+    saveConfigFile();
+    request->redirect("/?result=ok");
+  });
+
   server.on("/ajax", HTTP_POST, [] (AsyncWebServerRequest *request) {
     String action,value,response="";
-/* #ifdef __DEBUG__
-    int i, params = request->params();
-    for(i=0;i<params;i++){
-      AsyncWebParameter* p = request->getParam(i);
-      Serial.printf("_POST[%s]: %s\n", p->name().c_str(), p->value().c_str());
-    }
-#endif */
     if (request->hasParam("action", true)) {
       action = request->getParam("action", true)->value();
-      Serial.print("ACTION: ");
+      // DEBUG_PRINT("ACTION: "+String(action));
       if(action.equals("get")) {
         value = request->getParam("value", true)->value();
-        Serial.println(value);
         if(value.equals("temp")) {
           response = String(lastTemp);
         }
@@ -102,20 +141,11 @@ void initWebServer() {
         if(value.equals("aq")) {
           response = String(lastAQ);
         }
- #ifdef __DEBUG__
-        Serial.print("[DEBUG] POST action:");
-        Serial.print(action);
-        Serial.print(":");
-        Serial.print(value);
-        Serial.print("=");
-        Serial.println(response);
- #endif
+        // DEBUG_PRINT("[HTTP] POST action:"+String(action)+":"+String(value)+"="+String(response));
       }
     }
     request->send(200, "text/plain", response);
   });
-  // Add events handler
-  server.addHandler(&events);
 
   server.onNotFound([](AsyncWebServerRequest *request) {
     Serial.printf("NOT_FOUND: ");
@@ -166,4 +196,3 @@ void initWebServer() {
 
   server.begin();
 }
-
